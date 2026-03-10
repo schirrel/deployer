@@ -1,0 +1,36 @@
+{
+  "services": [
+    {
+      "key": "web",
+      "label": "Web App",
+      "subtitle": "Main web application",
+      "composeName": "webapp",
+      "deployable": true
+    },
+    {
+      "key": "api",
+      "label": "API Server",
+      "subtitle": "Backend API service",
+      "composeName": "api",
+      "deployable": true
+    },
+    {
+      "key": "worker",
+      "label": "Background Worker",
+      "subtitle": "Async job processor",
+      "composeName": "worker",
+      "deployable": true
+    },
+    {
+      "key": "db",
+      "label": "Database",
+      "subtitle": "PostgreSQL",
+      "composeName": "postgres",
+      "deployable": false
+    }
+  ],
+  "migration": {
+    "enabled": true,
+    "service": "prisma-migrate"
+  }
+}

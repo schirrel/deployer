@@ -1,0 +1,72 @@
+[
+  {
+    "id": "deploy_1772229790866_all",
+    "service": "all",
+    "status": "failed",
+    "startedAt": "2026-02-27T22:03:10.867Z",
+    "duration": 0,
+    "commitBefore": null,
+    "commitAfter": null,
+    "migrationRan": false
+  },
+  {
+    "id": "deploy_1772229721869_all",
+    "service": "all",
+    "status": "failed",
+    "startedAt": "2026-02-27T22:02:01.870Z",
+    "duration": 0,
+    "commitBefore": null,
+    "commitAfter": null,
+    "migrationRan": false
+  },
+  {
+    "id": "deploy_1772227990192_web",
+    "service": "web",
+    "status": "success",
+    "startedAt": "2026-02-27T21:33:10.193Z",
+    "duration": 112,
+    "commitBefore": "136389ce1012b2ee4c13e4b671ba40f8f601e5df",
+    "commitAfter": "136389ce1012b2ee4c13e4b671ba40f8f601e5df",
+    "migrationRan": false
+  },
+  {
+    "id": "deploy_1772227760967_all",
+    "service": "all",
+    "status": "failed",
+    "startedAt": "2026-02-27T21:29:20.967Z",
+    "duration": 0,
+    "commitBefore": null,
+    "commitAfter": null,
+    "migrationRan": false
+  },
+  {
+    "id": "deploy_1772227754443_all",
+    "service": "all",
+    "status": "failed",
+    "startedAt": "2026-02-27T21:29:14.444Z",
+    "duration": 0,
+    "commitBefore": null,
+    "commitAfter": null,
+    "migrationRan": false
+  },
+  {
+    "id": "deploy_1772226771604_all",
+    "service": "all",
+    "status": "failed",
+    "startedAt": "2026-02-27T21:12:51.605Z",
+    "duration": 0,
+    "commitBefore": null,
+    "commitAfter": null,
+    "migrationRan": false
+  },
+  {
+    "id": "deploy_1772226628279_all",
+    "service": "all",
+    "status": "failed",
+    "startedAt": "2026-02-27T21:10:28.280Z",
+    "duration": 0,
+    "commitBefore": null,
+    "commitAfter": null,
+    "migrationRan": false
+  }
+]

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deployer Platform</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <!-- ── LOGIN OVERLAY ───────────────────────────────────────────── -->
+  <div id="login-overlay" class="login-overlay hidden" role="dialog" aria-modal="true">
+    <div class="login-box">
+      <div class="login-box__icon">⬡</div>
+      <h2 class="login-box__title">Deployer Platform</h2>
+      <p class="login-box__sub">Insira o token de acesso (<code>DEPLOY_TOKEN</code>)</p>
+      <form id="login-form" class="login-form">
+        <input
+          id="login-token"
+          type="password"
+          class="login-input"
+          placeholder="Token de autenticação"
+          autocomplete="current-password"
+          required
+        />
+        <button type="submit" class="btn btn--primary" style="width:100%;justify-content:center">
+          Entrar
+        </button>
+      </form>
+      <p id="login-error" class="login-error hidden">Token inválido. Tente novamente.</p>
+    </div>
+  </div>
+
+  <!-- ── HEADER ──────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header__brand">
+      <span class="header__logo">⬡</span>
+      <span class="header__title">Deployer Platform</span>
+    </div>
+    <div class="header__actions">
+      <span id="clock" class="header__clock"></span>
+      <button id="btn-deploy-all" class="btn btn--primary btn--icon">
+        🚀 Deploy All
+      </button>
+      <button id="btn-migrate" class="btn btn--warning btn--icon" title="Executar migration Prisma">
+        🔄 Run Migration
+      </button>
+      <button id="btn-refresh" class="btn btn--ghost btn--icon" title="Atualizar status">⟳</button>
+      <button id="btn-logout" class="btn btn--ghost btn--icon" title="Sair">🔓</button>
+    </div>
+  </header>
+
+  <!-- ── TABS ────────────────────────────────────────────────────── -->
+  <nav class="tabs">
+    <button class="tab tab--active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="history">Histórico</button>
+  </nav>
+
+  <!-- ── MIGRATION BANNER ────────────────────────────────────────── -->
+  <div id="migration-banner" class="migration-banner hidden">
+    <span class="migration-banner__icon blink">⚠️</span>
+    <span>Migration detectada no <code>schema.prisma</code> — será executada no próximo deploy</span>
+    <button id="migration-banner-close" class="migration-banner__close">✕</button>
+  </div>
+
+  <!-- ── DASHBOARD ───────────────────────────────────────────────── -->
+  <main id="tab-dashboard" class="tab-content tab-content--active">
+    <section class="services-grid" id="services-grid">
+      <!-- Cards gerados pelo JS -->
+      <div class="card card--skeleton"></div>
+      <div class="card card--skeleton"></div>
+      <div class="card card--skeleton"></div>
+    </section>
+  </main>
+
+  <!-- ── HISTORY ─────────────────────────────────────────────────── -->
+  <main id="tab-history" class="tab-content hidden">
+    <div class="history-wrapper">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Serviço</th>
+            <th>Tipo</th>
+            <th>Status</th>
+            <th>Iniciado em</th>
+            <th>Duração</th>
+            <th>Commit</th>
+            <th>Migration</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="history-tbody">
+          <tr><td colspan="8" class="loading">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- ── TERMINAL MODAL ──────────────────────────────────────────── -->
+  <div id="terminal-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal__overlay" id="modal-overlay"></div>
+    <div class="modal__container">
+      <div class="modal__header">
+        <div class="modal__title-group">
+          <span id="modal-title" class="modal__title">Deploy — web</span>
+          <span id="modal-status-badge" class="badge badge--running">running</span>
+        </div>
+        <button id="modal-close" class="btn btn--ghost">✕ Fechar</button>
+      </div>
+
+      <!-- Pipeline Steps -->
+      <div class="pipeline" id="pipeline-steps"></div>
+
+      <!-- Terminal output -->
+      <div id="terminal" class="terminal" aria-live="polite"></div>
+
+      <div class="modal__footer">
+        <span id="terminal-meta" class="terminal__meta"></span>
+        <label class="autoscroll-toggle">
+          <input type="checkbox" id="autoscroll-toggle" checked />
+          Auto-scroll
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DEPLOY DETAIL MODAL ────────────────────────────────────────── -->
+  <div id="detail-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal__overlay" id="detail-overlay"></div>
+    <div class="modal__container">
+      <div class="modal__header">
+        <div class="modal__title-group">
+          <span id="detail-title" class="modal__title">Detalhes do Deploy</span>
+          <span id="detail-status-badge" class="badge">—</span>
+        </div>
+        <button id="detail-close" class="btn btn--ghost">✕ Fechar</button>
+      </div>
+
+      <!-- Metadata grid -->
+      <div class="detail-meta" id="detail-meta"></div>
+
+      <!-- Log viewer -->
+      <div id="detail-terminal" class="terminal terminal--readonly" aria-live="off"></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/terminal.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
