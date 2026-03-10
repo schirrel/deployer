@@ -5,6 +5,9 @@ Plataforma web de deploy automatizado para projetos Docker.
 **Zero dependências externas** — apenas módulos nativos do Node.js.  
 **Configuração dinâmica** — serviços definidos via `services.json`, reutilizável para diferentes projetos.
 
+<img width="1828" height="799" alt="Captura de tela 2026-03-09 234615" src="https://github.com/user-attachments/assets/694160b0-25e7-4501-9ace-0fb317d9ccaa" />
+
+
 ---
 
 ## Início Rápido
