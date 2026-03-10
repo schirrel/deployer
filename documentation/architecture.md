@@ -1,8 +1,8 @@
-# Arquitetura do Deployer Platform
+# Arquitetura do Deploy Platform
 
 ## Visão Geral
 
-O Deployer Platform é uma aplicação web para automação de deploys de projetos Docker. Foi projetado com os seguintes princípios:
+O Deploy Platform é uma aplicação web para automação de deploys de projetos Docker. Foi projetado com os seguintes princípios:
 
 - **Zero dependências externas** — apenas módulos nativos do Node.js
 - **Configuração dinâmica** — serviços definidos via JSON, não hardcoded

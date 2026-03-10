@@ -11,7 +11,7 @@ Plataforma web de deploy automatizado para projetos Docker.
 
 ```bash
 # 1. Clone ou copie deploy-platform/ para sua VPS
-cd deploy-platform
+cd deployer
 
 # 2. Configure o ambiente
 cp .env.example .env

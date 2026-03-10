@@ -1,8 +1,8 @@
-# Configuração do Deployer Platform
+# Configuração do Deploy Platform
 
 ## Visão Geral
 
-A configuração do Deployer Platform é feita em duas partes:
+A configuração do Deploy Platform é feita em duas partes:
 1. **Variáveis de ambiente** (`.env`) — configurações do servidor
 2. **Arquivo de serviços** (`data/services.json`) — definição dos serviços Docker
 
@@ -245,7 +245,7 @@ deployer/
 
 ### docker-compose.yml Esperado
 
-O Deployer Platform espera que seu `docker-compose.yml` siga algumas convenções:
+O Deploy Platform espera que seu `docker-compose.yml` siga algumas convenções:
 
 ```yaml
 version: '3.8'
@@ -296,7 +296,7 @@ volumes:
 
 ### Health Checks
 
-O Deployer Platform verifica a saúde dos containers após o deploy:
+O Deploy Platform verifica a saúde dos containers após o deploy:
 
 - **Com HEALTHCHECK**: Aguarda status `healthy` (polling 2s, timeout 30s)
 - **Sem HEALTHCHECK**: Considera OK se status é `running`
@@ -309,7 +309,7 @@ Recomendamos sempre configurar HEALTHCHECK nos serviços deployáveis.
 
 ### Dockerfile do Deployer
 
-O Deployer Platform já inclui um Dockerfile otimizado:
+O Deploy Platform já inclui um Dockerfile otimizado:
 
 ```dockerfile
 FROM node:20-alpine
@@ -392,9 +392,9 @@ Ao iniciar, essas variáveis serão convertidas para `services.json`.
 node server.js
 
 # Output esperado:
-# [Deployer Platform] Servidor rodando em http://localhost:4000
-# [Deployer Platform] Token: ✓ configurado
-# [Deployer Platform] Repo:  /home/user/meu-projeto
+# [Deploy Platform] Servidor rodando em http://localhost:4000
+# [Deploy Platform] Token: ✓ configurado
+# [Deploy Platform] Repo:  /home/user/meu-projeto
 ```
 
 Se `services.json` tiver erros, você verá:
