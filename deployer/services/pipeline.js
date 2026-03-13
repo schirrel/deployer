@@ -84,7 +84,7 @@ function saveRecord(record) {
  * Executa o pipeline completo para um serviço.
  * @param {string} serviceKey  — 'web' | 'cron' | 'whatsapp' | 'all'
  * @param {string} deployId
- * @param {object} options     — { force: bool }
+ * @param {object} options     — { force: bool, noCache: bool, noDeps: bool }
  */
 async function run(serviceKey, deployId, options = {}) {
   if (!emitters.has(deployId)) emitters.set(deployId, new EventEmitter());
@@ -127,8 +127,8 @@ async function run(serviceKey, deployId, options = {}) {
     // ── STEP 3: Build ─────────────────────────────────────────────────────
     for (const svc of targets) {
       step(deployId, `build:${svc}`, 'running');
-      log(deployId, `▶ docker compose build ${svc}`);
-      await docker.buildService(svc, (line, stream) => log(deployId, line, stream));
+      log(deployId, `▶ docker compose build ${svc}${options.noCache ? ' --no-cache' : ''}${options.noDeps ? ' --no-deps' : ''}`);
+      await docker.buildService(svc, (line, stream) => log(deployId, line, stream), { noCache: options.noCache, noDeps: options.noDeps });
       step(deployId, `build:${svc}`, 'done');
       log(deployId, `✓ Build de '${svc}' concluído`);
     }
@@ -152,8 +152,8 @@ async function run(serviceKey, deployId, options = {}) {
     // ── STEP 6: Up ────────────────────────────────────────────────────────
     for (const svc of targets) {
       step(deployId, `up:${svc}`, 'running');
-      log(deployId, `▶ docker compose up -d ${svc}`);
-      await docker.upService(svc, (line, stream) => log(deployId, line, stream));
+      log(deployId, `▶ docker compose up -d ${svc}${options.noDeps ? ' --no-deps' : ''}`);
+      await docker.upService(svc, (line, stream) => log(deployId, line, stream), { noDeps: options.noDeps });
       step(deployId, `up:${svc}`, 'done');
       log(deployId, `✓ '${svc}' subiu`);
     }

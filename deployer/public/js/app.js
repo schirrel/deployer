@@ -126,6 +126,18 @@
           <span class="card__meta-value" id="commit-${svc.key}">—</span>
         </div>
       </div>
+      ${isDeployable ? `
+        <div class="card__options">
+          <label class="card__option">
+            <input type="checkbox" class="card__option-check" data-option="noCache" />
+            <span>no-cache</span>
+          </label>
+          <label class="card__option">
+            <input type="checkbox" class="card__option-check" data-option="noDeps" />
+            <span>no-deps</span>
+          </label>
+        </div>
+      ` : ''}
       <div class="card__actions">
         ${isDeployable ? `
           <button class="btn btn--primary btn--deploy" data-service="${svc.key}">
@@ -155,7 +167,13 @@
     }
 
     // Adiciona event listeners
-    newCard.querySelector('.btn--deploy')?.addEventListener('click', () => triggerDeploy(svc.key));
+    newCard.querySelector('.btn--deploy')?.addEventListener('click', () => {
+      const opts = {};
+      newCard.querySelectorAll('.card__option-check').forEach(cb => {
+        opts[cb.dataset.option] = cb.checked;
+      });
+      triggerDeploy(svc.key, opts);
+    });
     newCard.querySelector('.btn--rollback')?.addEventListener('click', () => triggerRollback(svc.key));
   }
 
@@ -191,9 +209,9 @@
 
   // ── Deploy ────────────────────────────────────────────────────────
 
-  async function triggerDeploy(serviceKey) {
+  async function triggerDeploy(serviceKey, deployOptions = {}) {
     try {
-      const { deployId, service } = await API.startDeploy(serviceKey);
+      const { deployId, service } = await API.startDeploy(serviceKey, deployOptions);
       const svc = SERVICES.find(s => s.key === serviceKey);
       Terminal.connect(deployId, `Deploy — ${svc?.label || service}`, () => {
         // Atualiza status após conclusão

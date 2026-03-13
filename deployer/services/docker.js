@@ -97,9 +97,18 @@ function composeArgs(extra = []) {
 
 /**
  * Faz `docker compose build <service>`.
+ * @param {string} service
+ * @param {Function} onLine
+ * @param {object} [options]
+ * @param {boolean} [options.noCache=false]  — passa --no-cache ao build
+ * @param {boolean} [options.noDeps=false]   — passa --no-deps ao build
  */
-async function buildService(service, onLine) {
-  const result = await spawnCmd('docker', ['compose', ...composeArgs(['build', '--no-cache', service])], {}, onLine);
+async function buildService(service, onLine, options = {}) {
+  const buildArgs = ['build'];
+  if (options.noCache) buildArgs.push('--no-cache');
+  if (options.noDeps)  buildArgs.push('--no-deps');
+  buildArgs.push(service);
+  const result = await spawnCmd('docker', ['compose', ...composeArgs(buildArgs)], {}, onLine);
   if (result.code !== 0) throw new Error(`docker compose build falhou (exit ${result.code})`);
   return result;
 }
@@ -116,9 +125,16 @@ async function downService(service, onLine) {
 
 /**
  * Faz `docker compose up -d <service>`.
+ * @param {string} service
+ * @param {Function} onLine
+ * @param {object} [options]
+ * @param {boolean} [options.noDeps=false]  — passa --no-deps ao up
  */
-async function upService(service, onLine) {
-  const result = await spawnCmd('docker', ['compose', ...composeArgs(['up', '-d', '--no-build', service])], {}, onLine);
+async function upService(service, onLine, options = {}) {
+  const upArgs = ['up', '-d', '--no-build'];
+  if (options.noDeps) upArgs.push('--no-deps');
+  upArgs.push(service);
+  const result = await spawnCmd('docker', ['compose', ...composeArgs(upArgs)], {}, onLine);
   if (result.code !== 0) throw new Error(`docker compose up falhou (exit ${result.code})`);
   return result;
 }
