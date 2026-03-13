@@ -80,7 +80,7 @@
 
   function getStatus()              { return request('GET',  '/api/status'); }
   function getServices()            { return request('GET',  '/api/services'); }
-  function startDeploy(service)     { return request('POST', `/api/deploy/${service}`); }
+  function startDeploy(service, options)  { return request('POST', `/api/deploy/${service}`, options || {}); }
   function startRollback(svc)       { return request('POST', `/api/rollback/${svc}`); }
   function getHistory()             { return request('GET',  '/api/history'); }
   function getDeployDetail(id)      { return request('GET',  `/api/history/${id}`); }

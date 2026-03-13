@@ -245,6 +245,31 @@ html, body {
 
 .card__actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+/* ── Card deploy options ─────────────────────────────────────────────── */
+.card__options {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.card__option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--font-mono);
+}
+
+.card__option-check {
+  cursor: pointer;
+  accent-color: var(--blue);
+  width: 13px;
+  height: 13px;
+}
+
 /* ── Badge ───────────────────────────────────────────────────────────── */
 .badge {
   display: inline-block;
