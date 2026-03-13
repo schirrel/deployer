@@ -122,7 +122,49 @@ docker run -d \
   deploy-platform
 ```
 
+Add to docker-compose
+```
+# ── Deployer ──────────────────────────────────────────────────────────────
+  deployer:
+    build:
+      context: ./deployer # (if in same folder or ../../to-deployer-path)
+      dockerfile: Dockerfile
+    container_name: deployer
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      DEPLOY_TOKEN: ${DEPLOY_TOKEN}
+      REPO_PATH: ${REPO_PATH:-/root/repo-path}
+      COMPOSE_FILE: ${COMPOSE_FILE:-/root/repo-path/docker-compose.yml}
+      GIT_BRANCH: ${GIT_BRANCH:-main}
+      PRISMA_SCHEMA_PATH: ${PRISMA_SCHEMA_PATH:-/root/repo-path/schema.prisma}
+      PRISMA_SERVICE: prisma-migrate
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${REPO_PATH:-/root/repo-path}:${REPO_PATH:-/root/repo-path}
+      - deployer_data:/app/data
+      - /root/.ssh:/root/.ssh:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "7"
+    networks:
+      - network-name
+
+```
+
 ---
+
+
 
 ## Arquitetura
 
