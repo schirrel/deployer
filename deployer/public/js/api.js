@@ -85,13 +85,20 @@
   function getHistory()             { return request('GET',  '/api/history'); }
   function getDeployDetail(id)      { return request('GET',  `/api/history/${id}`); }
   function runMigration()           { return request('POST', '/api/migrate'); }
+  function startGitSync()           { return request('POST', '/api/git/sync'); }
+  function getGitInfo()             { return request('GET',  '/api/git/info'); }
 
   function getStreamUrl(deployId) {
     const token = encodeURIComponent(getToken());
     return `${API_BASE}/api/deploy/stream/${deployId}?token=${token}`;
   }
 
+  function getGitStreamUrl(syncId) {
+    const token = encodeURIComponent(getToken());
+    return `${API_BASE}/api/git/stream/${syncId}?token=${token}`;
+  }
+
   // Exporta para o escopo global
-  window.API = { getToken, saveToken, clearToken, showLogin, getStatus, getServices, startDeploy, startRollback, getHistory, getDeployDetail, runMigration, getStreamUrl };
+  window.API = { getToken, saveToken, clearToken, showLogin, getStatus, getServices, startDeploy, startRollback, getHistory, getDeployDetail, runMigration, startGitSync, getGitInfo, getStreamUrl, getGitStreamUrl };
 
 })(window);

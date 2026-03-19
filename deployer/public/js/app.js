@@ -35,10 +35,12 @@
       }
 
       await loadStatus();
+      await loadGitInfo();
     } catch (err) {
       console.warn('[Init] Erro ao carregar config:', err.message);
       // Fallback: tenta carregar status mesmo sem config
       await loadStatus();
+      await loadGitInfo();
     }
   }
 
@@ -202,10 +204,124 @@
     }
   }
 
+  
+  // ── Git Info ────────────────────────────────────────────────────────
+
+  async function loadGitInfo() {
+    try {
+      const data = await API.getGitInfo();
+
+      const branchEl     = document.getElementById('git-branch');
+      const hashEl       = document.getElementById('git-hash');
+      const lastCommitEl = document.getElementById('git-last-commit');
+      const dirtyEl      = document.getElementById('git-dirty');
+
+      if (branchEl) branchEl.textContent = data.branch || '—';
+      if (hashEl)   hashEl.textContent   = data.hash ? data.hash.slice(0, 10) : '—';
+      if (lastCommitEl && data.lastCommit) {
+        lastCommitEl.textContent = `${data.lastCommit.subject} (${data.lastCommit.relTime})`;
+        lastCommitEl.title       = `${data.lastCommit.author} — ${data.lastCommit.hash}`;
+      }
+      if (dirtyEl) {
+        if (data.dirty.length === 0) {
+          dirtyEl.textContent = '✓ Limpo';
+          dirtyEl.style.color = 'var(--green)';
+        } else {
+          dirtyEl.textContent = `${data.dirty.length} arquivo(s)`;
+          dirtyEl.style.color = 'var(--yellow)';
+          dirtyEl.title = data.dirty.join('\n');
+        }
+      }
+    } catch (err) {
+      console.warn('[GitInfo]', err.message);
+    }
+  }
+
+  // ── Git Sync ──────────────────────────────────────────────────────
+
+  async function triggerGitSync() {
+    try {
+      const { syncId } = await API.startGitSync();
+      const url = API.getGitStreamUrl(syncId);
+
+      // Reusa Terminal module com URL customizada do git stream
+      Terminal.open('Git Sync');
+
+      const source = new EventSource(url);
+      const startTime = Date.now();
+
+      source.onmessage = (e) => {
+        let event;
+        try { event = JSON.parse(e.data); } catch { return; }
+
+        const badge = document.getElementById('modal-status-badge');
+        const meta  = document.getElementById('terminal-meta');
+        const pipelineEl = document.getElementById('pipeline-steps');
+
+        switch (event.type) {
+          case 'log': {
+            const cls = event.stream === 'stderr' ? 'stderr'
+                      : event.line.startsWith('✓') ? 'success'
+                      : event.line.startsWith('⚠') ? 'warning'
+                      : event.line.startsWith('▶') ? 'info'
+                      : 'stdout';
+            Terminal.appendLine(event.line, cls);
+            break;
+          }
+          case 'step': {
+            // Upsert pipeline step
+            let stepEl = pipelineEl.querySelector(`[data-step="${event.step}"]`);
+            if (!stepEl) {
+              stepEl = document.createElement('div');
+              stepEl.className = 'pipeline-step';
+              stepEl.dataset.step = event.step;
+              const labels = {
+                'git-fetch': '① fetch', 'git-diff': '② diff',
+                'git-pull': '③ pull', 'git-status': '④ status',
+              };
+              stepEl.innerHTML = `<span class="pipeline-step__icon"></span><span>${labels[event.step] || event.step}</span>`;
+              pipelineEl.appendChild(stepEl);
+            }
+            const icons = { running: '⟳', done: '✓', failed: '✗', warning: '⚠' };
+            stepEl.querySelector('.pipeline-step__icon').textContent = icons[event.status] || '';
+            stepEl.className = `pipeline-step pipeline-step--${event.status}`;
+            break;
+          }
+          case 'error':
+            Terminal.appendLine(`✗ ${event.message}`, 'stderr');
+            break;
+          case 'done': {
+            const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+            badge.textContent = event.status;
+            badge.className   = `badge badge--${event.status === 'success' ? 'success' : event.status === 'warning' ? 'warning' : 'failed'}`;
+            meta.textContent  = `Concluído em ${duration}s`;
+            Terminal.appendLine(`\n── Git Sync ${event.status.toUpperCase()} (${duration}s) ──`,
+              event.status === 'success' ? 'success' : 'stderr');
+            source.close();
+            setTimeout(loadGitInfo, 1000);
+            break;
+          }
+        }
+      };
+
+      source.onerror = () => {
+        if (source.readyState === EventSource.CLOSED) return;
+        Terminal.appendLine('⚡ Conexão SSE perdida', 'stderr');
+      };
+    } catch (err) {
+      alert(`Erro ao iniciar git sync: ${err.message}`);
+    }
+  }
+
+  document.getElementById('btn-git-sync')?.addEventListener('click', triggerGitSync);
+
+
   // Polling a cada 15s — só inicia após ter token
   setInterval(() => {
     if (API.getToken()) loadStatus();
   }, 15000);
+
+
 
   // ── Deploy ────────────────────────────────────────────────────────
 

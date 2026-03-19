@@ -163,6 +163,23 @@ const server = http.createServer((req, res) => {
     req.params = { service: rollbackMatch[1] };
     return deployRoute.rollback(req, res, jsonResponse);
   }
+  
+  // POST /api/git/sync
+  if (req.method === 'POST' && pathname === '/api/git/sync') {
+    return gitRoute.sync(req, res, jsonResponse);
+  }
+
+  // GET  /api/git/stream/:syncId
+  const gitStreamMatch = pathname.match(/^\/api\/git\/stream\/([^/]+)$/);
+  if (req.method === 'GET' && gitStreamMatch) {
+    req.params = { syncId: gitStreamMatch[1] };
+    return gitRoute.stream(req, res);
+  }
+
+  // GET  /api/git/info
+  if (req.method === 'GET' && pathname === '/api/git/info') {
+    return gitRoute.info(req, res, jsonResponse);
+  }
 
   // 404 padrão
   jsonResponse(res, 404, { error: 'Route not found', path: pathname });

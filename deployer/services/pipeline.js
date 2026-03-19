@@ -277,8 +277,6 @@ async function rollback(serviceKey, deployId) {
   }
 }
 
-module.exports = { run, rollback, runMigrationOnly, on };
-
 // ── Migration standalone ───────────────────────────────────────────────────
 
 /**
@@ -321,3 +319,97 @@ async function runMigrationOnly(deployId) {
   setTimeout(() => emitters.delete(deployId), 60000);
   return { status, summary: { duration } };
 }
+
+
+// ── Git Sync ──────────────────────────────────────────────────────────
+
+/**
+ * Executa apenas sincronização git: fetch → diff → pull.
+ * Não faz build nem restart de serviços.
+ * @param {string} deployId
+ */
+async function runGitSync(deployId) {
+  if (!emitters.has(deployId)) emitters.set(deployId, new EventEmitter());
+
+  const startedAt = new Date().toISOString();
+  const startTime = Date.now();
+  let syncStatus  = 'success';
+  let previousHash = null;
+  let currentHash  = null;
+
+  try {
+    // ── STEP 1: Fetch ──────────────────────────────────────────────
+    step(deployId, 'git-fetch', 'running');
+    log(deployId, '▶ git fetch origin');
+
+    previousHash = await git.getCurrentHash().catch(() => null);
+    await git.fetch((line, stream) => log(deployId, line, stream));
+
+    step(deployId, 'git-fetch', 'done');
+    log(deployId, '✓ Fetch concluído');
+
+    // ── STEP 2: Check diff ─────────────────────────────────────────
+    step(deployId, 'git-diff', 'running');
+    log(deployId, '▶ Verificando commits pendentes...');
+
+    const { ahead, behind } = await git.getRevCount();
+    log(deployId, `  Local: ${ahead} commit(s) à frente | ${behind} commit(s) atrás`);
+
+    const remoteDiff = await git.getRemoteDiff();
+    if (remoteDiff) {
+      log(deployId, '  Commits novos no remote:');
+      remoteDiff.split('\n').forEach(line => log(deployId, `    ${line}`));
+    } else {
+      log(deployId, '  Nenhum commit novo no remote');
+    }
+
+    step(deployId, 'git-diff', 'done');
+
+    // ── STEP 3: Pull ───────────────────────────────────────────────
+    step(deployId, 'git-pull', 'running');
+    log(deployId, '▶ git pull origin main');
+
+    await git.pull((line, stream) => log(deployId, line, stream));
+    currentHash = await git.getCurrentHash().catch(() => null);
+
+    step(deployId, 'git-pull', 'done');
+    log(deployId, `✓ Pull concluído. HEAD: ${currentHash?.slice(0, 7)}`);
+
+    // ── STEP 4: Status ─────────────────────────────────────────────
+    step(deployId, 'git-status', 'running');
+    const gitStatus = await git.status();
+    if (gitStatus) {
+      log(deployId, '⚠️  Arquivos modificados localmente:');
+      gitStatus.split('\n').forEach(line => log(deployId, `  ${line}`));
+      syncStatus = 'warning';
+    } else {
+      log(deployId, '✓ Working tree limpa');
+    }
+    step(deployId, 'git-status', gitStatus ? 'warning' : 'done');
+
+  } catch (err) {
+    syncStatus = 'failed';
+    log(deployId, `✗ ERRO: ${err.message}`, 'stderr');
+    emit(deployId, { type: 'error', message: err.message });
+  }
+
+  const duration = Math.round((Date.now() - startTime) / 1000);
+  appendLog(deployId, `── Git Sync ${syncStatus.toUpperCase()} (${duration}s) ──`);
+
+  saveRecord({
+    id:           deployId,
+    service:      'git',
+    type:         'git-sync',
+    status:       syncStatus,
+    startedAt,
+    duration,
+    commitBefore: previousHash,
+    commitAfter:  currentHash,
+  });
+
+  setTimeout(() => emitters.delete(deployId), 60000);
+
+  return { status: syncStatus, summary: { duration, currentHash } };
+}
+
+module.exports = { run, rollback, runMigrationOnly, on, runGitSync };
