@@ -165,7 +165,6 @@ Gerencia configuração dinâmica de serviços:
 - Carrega `data/services.json`
 - Valida estrutura do arquivo
 - Fornece funções de acesso aos serviços
-- Retrocompatibilidade com variáveis `SERVICE_*` do `.env`
 - Cache com invalidação automática baseada em mtime
 
 ### 3. services/pipeline.js

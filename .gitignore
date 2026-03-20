@@ -1,2 +1,4 @@
 .env
 deployer/.env
+deployer/data/logs
+deployer/data/services.json

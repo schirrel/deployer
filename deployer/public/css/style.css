@@ -566,3 +566,30 @@ html, body {
 .term-line--ok    { color: var(--terminal-green); }
 .term-line--warn  { color: var(--terminal-yellow); }
 .term-line--info  { color: var(--blue); }
+/* ── Git Info Bar ────────────────────────────────────────────────────── */
+.git-info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 14px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+}
+.git-info-bar__item { display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+.git-info-bar__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text-muted);
+}
+.git-info-bar__value {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 320px;
+}

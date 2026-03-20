@@ -70,45 +70,6 @@ const EXAMPLE_CONFIG = {
 };
 
 /**
- * Gera configuração a partir das variáveis de ambiente legadas (SERVICE_*)
- * Usado para retrocompatibilidade quando services.json não existe
- */
-function generateFromEnv() {
-  const services = [];
-
-  // Mapeamento de variáveis legadas
-  const envMappings = [
-    { envVar: 'SERVICE_WEB',      key: 'web',      label: 'Web App',    subtitle: 'Web Application',      deployable: true },
-    { envVar: 'SERVICE_CRON',     key: 'cron',     label: 'Cron',       subtitle: 'Cron Jobs',            deployable: true },
-    { envVar: 'SERVICE_WHATSAPP', key: 'whatsapp', label: 'WhatsApp',   subtitle: 'Evolution API',        deployable: true },
-    { envVar: 'SERVICE_DEPLOYER', key: 'deployer', label: 'Deployer',   subtitle: 'Deployment Service',   deployable: true },
-    { envVar: 'SERVICE_NGINX',    key: 'nginx',    label: 'Nginx',      subtitle: 'Reverse Proxy',        deployable: true },
-    { envVar: 'SERVICE_DB',       key: 'db',       label: 'Database',   subtitle: 'PostgreSQL',           deployable: false },
-  ];
-
-  for (const mapping of envMappings) {
-    const composeName = process.env[mapping.envVar];
-    if (composeName) {
-      services.push({
-        key: mapping.key,
-        label: mapping.label,
-        subtitle: mapping.subtitle,
-        composeName,
-        deployable: mapping.deployable
-      });
-    }
-  }
-
-  return {
-    services,
-    migration: {
-      enabled: !!process.env.PRISMA_SERVICE || !!process.env.PRISMA_SCHEMA_PATH,
-      service: process.env.PRISMA_SERVICE || 'prisma-migrate'
-    }
-  };
-}
-
-/**
  * Valida a estrutura de um serviço
  */
 function validateService(svc, index) {
@@ -190,27 +151,9 @@ function loadConfig() {
       if (errors.length > 0) {
         console.error('[Config] Erros de validação em services.json:');
         errors.forEach(e => console.error(`  - ${e}`));
-        console.error('[Config] Usando configuração padrão do .env');
-        config = generateFromEnv();
       }
     } catch (err) {
       console.error(`[Config] Erro ao ler services.json: ${err.message}`);
-      console.error('[Config] Usando configuração padrão do .env');
-      config = generateFromEnv();
-    }
-  } else {
-    // Gera do .env (retrocompatibilidade)
-    config = generateFromEnv();
-    
-    // Se gerou serviços do .env, salva como services.json
-    if (config.services.length > 0) {
-      try {
-        ensureDataDir();
-        fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
-        console.log('[Config] services.json criado a partir das variáveis SERVICE_* do .env');
-      } catch (err) {
-        console.warn(`[Config] Não foi possível salvar services.json: ${err.message}`);
-      }
     }
   }
 

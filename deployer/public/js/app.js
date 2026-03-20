@@ -382,8 +382,11 @@
   });
 
   // ── Refresh manual ────────────────────────────────────────────────
-  document.getElementById('btn-refresh')?.addEventListener('click', loadStatus);
-
+  document.getElementById('btn-refresh')?.addEventListener('click', () => {
+    loadStatus();
+    loadGitInfo();
+  });
+  
   // ── Logout ────────────────────────────────────────────────────────
   document.getElementById('btn-logout')?.addEventListener('click', () => {
     API.clearToken();

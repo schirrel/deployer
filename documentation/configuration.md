@@ -352,23 +352,6 @@ docker run -d \
 
 ---
 
-## Retrocompatibilidade
-
-Se `services.json` não existir, o sistema tentará criar automaticamente a partir de variáveis legadas:
-
-```env
-# Variáveis legadas (funciona, mas não recomendado)
-SERVICE_WEB=webapp
-SERVICE_API=api
-SERVICE_CRON=cron
-SERVICE_DB=postgres
-PRISMA_SERVICE=prisma-migrate
-```
-
-Ao iniciar, essas variáveis serão convertidas para `services.json`.
-
----
-
 ## Validação de Configuração
 
 ### Erros Comuns

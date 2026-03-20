@@ -41,6 +41,9 @@
       <button id="btn-deploy-all" class="btn btn--primary btn--icon">
         🚀 Deploy All
       </button>
+      <button id="btn-git-sync" class="btn btn--ghost btn--icon" title="Sincronizar repositório git">
+        🔄 Git Sync
+      </button>
       <button id="btn-migrate" class="btn btn--warning btn--icon" title="Executar migration Prisma">
         🔄 Run Migration
       </button>
@@ -64,6 +67,26 @@
 
   <!-- ── DASHBOARD ───────────────────────────────────────────────── -->
   <main id="tab-dashboard" class="tab-content tab-content--active">
+     <!-- Git Repository Info -->
+    <section class="git-info-bar" id="git-info-bar">
+      <div class="git-info-bar__item">
+        <span class="git-info-bar__label">Branch</span>
+        <span class="git-info-bar__value" id="git-branch">—</span>
+      </div>
+      <div class="git-info-bar__item">
+        <span class="git-info-bar__label">HEAD</span>
+        <span class="git-info-bar__value" id="git-hash">—</span>
+      </div>
+      <div class="git-info-bar__item">
+        <span class="git-info-bar__label">Último commit</span>
+        <span class="git-info-bar__value" id="git-last-commit">—</span>
+      </div>
+      <div class="git-info-bar__item">
+        <span class="git-info-bar__label">Dirty</span>
+        <span class="git-info-bar__value" id="git-dirty">—</span>
+      </div>
+    </section>
+
     <section class="services-grid" id="services-grid">
       <!-- Cards gerados pelo JS -->
       <div class="card card--skeleton"></div>

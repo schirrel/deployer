@@ -35,6 +35,7 @@ const deployRoute    = require('./routes/deploy');
 const statusRoute    = require('./routes/status');
 const historyRoute   = require('./routes/history');
 const config         = require('./services/config');
+const gitRoute       = require('./routes/git');
 
 // MIME types para arquivos estáticos
 const MIME = {
@@ -104,7 +105,7 @@ const server = http.createServer((req, res) => {
 
   // ── API: autenticação ───────────────────────────────────────────────────
   // SSE streams têm autenticação via query param token (EventSource não suporta headers)
-  const isSse = pathname.startsWith('/api/deploy/stream/');
+  const isSse = pathname.startsWith('/api/deploy/stream/') || pathname.startsWith('/api/git/stream/');
   if (!authMiddleware(req, res, isSse ? parsed.searchParams.get('token') : null)) return;
 
   // ── Roteamento da API ───────────────────────────────────────────────────
