@@ -142,12 +142,16 @@ async function run(serviceKey, deployId, options = {}) {
     }
 
     // ── STEP 5: Prisma migrate deploy (sempre — é idempotente) ────────────
-    step(deployId, 'prisma-migrate', 'running');
-    log(deployId, '▶ docker compose run -T --rm prisma-migrate');
-    await prisma.runMigrations((line, stream) => log(deployId, line, stream));
-    step(deployId, 'prisma-migrate', 'done');
-    log(deployId, '✓ Migrations aplicadas');
-    migrationRan = true;
+    
+    let migrationEnabled = config.migration?.enabled === true;
+    if (migrationEnabled) {
+      step(deployId, 'prisma-migrate', 'running');
+      log(deployId, '▶ docker compose run -T --rm prisma-migrate');
+      await prisma.runMigrations((line, stream) => log(deployId, line, stream));
+      step(deployId, 'prisma-migrate', 'done');
+      log(deployId, '✓ Migrations aplicadas');
+      migrationRan = true;
+    }
 
     // ── STEP 6: Up ────────────────────────────────────────────────────────
     for (const svc of targets) {
