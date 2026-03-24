@@ -145,10 +145,10 @@ async function runBlueGreenWebapp(deployId, options = {}) {
   log(deployId, '▶ Renomeando container...');
   step(deployId, 'bg-renaming', 'running');
   log(deployId, `▶ docker rename ${active} ${inactive}`);
-  await docker.renameContainer(inactive, active);
+  await docker.renameContainer(active, inactive);
   step(deployId, 'bg-renaming', 'done');
-  log(deployId, `✓ Container renomeado: ${inactive} → ${active}`);
-  log(deployId, `▶ Switching traffic: ${active} → ${inactive}`);
+  log(deployId, `✓ Container renomeado: ${active} → ${active}`);
+  log(deployId, `▶ Switching traffic: ${inactive} → ${inactive}`);
   step(deployId, 'bg-switch', 'running');
   docker.switchUpstream(active, onLine);
   await docker.reloadNginx(onLine);
