@@ -106,7 +106,6 @@ function composeArgs(extra = []) {
 async function buildService(service, onLine, options = {}) {
   const buildArgs = ['build'];
   if (options.noCache) buildArgs.push('--no-cache');
-  if (options.noDeps)  buildArgs.push('--no-deps');
   buildArgs.push(service);
   const result = await spawnCmd('docker', ['compose', ...composeArgs(buildArgs)], {}, onLine);
   if (result.code !== 0) throw new Error(`docker compose build falhou (exit ${result.code})`);
