@@ -259,7 +259,7 @@ function switchUpstream(targetService, onLine) {
  */
 async function reloadNginx(onLine) {
   const result = await spawnCmd(
-    'docker', ['exec', 'zelo-prd-nginx', 'nginx', '-s', 'reload'],
+    'docker', ['container', 'exec', 'nginx', 'nginx', '-s', 'reload'],
     {}, onLine
   );
   if (result.code !== 0) {
