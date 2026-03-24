@@ -268,6 +268,14 @@ async function reloadNginx(onLine) {
   return result;
 }
 
+async function renameContainer(oldName, newName) {
+  const result = await spawnCmd('docker', ['rename', oldName, newName]);
+  if (result.code !== 0) {
+    throw new Error(`docker rename falhou (exit ${result.code})`);
+  }
+  return result;
+}
+
 module.exports = {
   spawnCmd,
   buildService,
@@ -280,4 +288,5 @@ module.exports = {
   getInactiveWebapp,
   switchUpstream,
   reloadNginx,
+  renameContainer,
 };
