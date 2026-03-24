@@ -20,7 +20,7 @@ const config = require('./config');
 
 const HISTORY_FILE = path.join(__dirname, '..', 'data', 'history.json');
 const LOGS_DIR     = path.join(__dirname, '..', 'data', 'logs');
-
+const HEALTH_TIMEOUT = config.timeout ? parseInt(config.timeout, 10) : 120000; 
 // Mapa global de emitters por deployId
 const emitters = new Map();
 
@@ -107,8 +107,8 @@ async function runBlueGreenWebapp(deployId, options = {}) {
 
   // ── Health check inactive (120s — includes migration + startup time) ────
   step(deployId, `bg-health:${inactive}`, 'running');
-  log(deployId, `▶ Aguardando health check de '${inactive}' (120s timeout)`);
-  const health = await docker.waitForHealthy(inactive, onLine, 120000);
+  log(deployId, `▶ Aguardando health check de '${inactive}' (${HEALTH_TIMEOUT / 1000}s timeout)`);
+  const health = await docker.waitForHealthy(inactive, onLine, HEALTH_TIMEOUT);
 
   if (health !== 'healthy' && health !== 'no-healthcheck') {
     step(deployId, `bg-health:${inactive}`, 'failed');
@@ -234,8 +234,8 @@ async function run(serviceKey, deployId, options = {}) {
     // ── STEP 7: Health Check (regular services only) ─────────────────────
     for (const svc of regularTargets) {
       step(deployId, `health:${svc}`, 'running');
-      log(deployId, `▶ Aguardando health check de '${svc}' (30s timeout)`);
-      const health = await docker.waitForHealthy(svc, (line, stream) => log(deployId, line, stream));
+      log(deployId, `▶ Aguardando health check de '${svc}' (${HEALTH_TIMEOUT / 1000}s timeout)`);
+      const health = await docker.waitForHealthy(svc, (line, stream) => log(deployId, line, stream), HEALTH_TIMEOUT);
 
       if (health === 'healthy' || health === 'no-healthcheck') {
         step(deployId, `health:${svc}`, 'done');
