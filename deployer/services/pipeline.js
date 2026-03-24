@@ -78,6 +78,71 @@ function saveRecord(record) {
   writeHistory(history);
 }
 
+// ── Blue-Green Deploy (Webapp) ─────────────────────────────────────────────
+
+/**
+ * Executa deploy blue-green do webapp: build inativo → up → health → switch → stop ativo.
+ * Garante zero-downtime para usuários.
+ */
+async function runBlueGreenWebapp(deployId, options = {}) {
+  const active   = docker.getActiveWebapp();
+  const inactive = docker.getInactiveWebapp();
+  const onLine   = (line, stream) => log(deployId, line, stream);
+
+  log(deployId, `▶ [Blue-Green] Active: ${active} | Inactive: ${inactive}`);
+
+  // ── Build inactive ──────────────────────────────────────────────────────
+  step(deployId, `bg-build:${inactive}`, 'running');
+  log(deployId, `▶ docker compose build ${inactive}${options.noCache ? ' --no-cache' : ''}`);
+  await docker.buildService(inactive, onLine, { noCache: options.noCache, noDeps: true });
+  step(deployId, `bg-build:${inactive}`, 'done');
+  log(deployId, `✓ Build de '${inactive}' concluído`);
+
+  // ── Start inactive (entrypoint runs prisma migrate automatically) ───────
+  step(deployId, `bg-up:${inactive}`, 'running');
+  log(deployId, `▶ docker compose up -d ${inactive}`);
+  await docker.upService(inactive, onLine, { noDeps: true });
+  step(deployId, `bg-up:${inactive}`, 'done');
+  log(deployId, `✓ '${inactive}' iniciado (migrations rodando via entrypoint)`);
+
+  // ── Health check inactive (120s — includes migration + startup time) ────
+  step(deployId, `bg-health:${inactive}`, 'running');
+  log(deployId, `▶ Aguardando health check de '${inactive}' (120s timeout)`);
+  const health = await docker.waitForHealthy(inactive, onLine, 120000);
+
+  if (health !== 'healthy' && health !== 'no-healthcheck') {
+    step(deployId, `bg-health:${inactive}`, 'failed');
+    log(deployId, `✗ '${inactive}' não passou no health check (${health})`, 'stderr');
+    log(deployId, `▶ Parando ${inactive} com falha...`);
+    await docker.downService(inactive, onLine).catch(() => {});
+    throw new Error(`Blue-green falhou: '${inactive}' unhealthy (${health})`);
+  }
+
+  step(deployId, `bg-health:${inactive}`, 'done');
+  log(deployId, `✓ '${inactive}' está healthy`);
+
+  // ── Switch nginx upstream ───────────────────────────────────────────────
+  step(deployId, 'bg-switch', 'running');
+  log(deployId, `▶ Switching traffic: ${active} → ${inactive}`);
+  docker.switchUpstream(inactive, onLine);
+  await docker.reloadNginx(onLine);
+  step(deployId, 'bg-switch', 'done');
+  log(deployId, `✓ Tráfego redirecionado para '${inactive}'`);
+
+  // ── Drain connections ───────────────────────────────────────────────────
+  log(deployId, '▶ Aguardando 5s para conexões ativas finalizarem...');
+  await new Promise(resolve => setTimeout(resolve, 5000));
+
+  // ── Stop old active ─────────────────────────────────────────────────────
+  step(deployId, `bg-down:${active}`, 'running');
+  log(deployId, `▶ Stopping old active: ${active}`);
+  await docker.downService(active, onLine);
+  step(deployId, `bg-down:${active}`, 'done');
+  log(deployId, `✓ '${active}' parado. Deploy blue-green concluído!`);
+
+  return { blueGreen: true, active: inactive, stopped: active };
+}
+
 // ── Pipeline principal ────────────────────────────────────────────────────
 
 /**
@@ -111,6 +176,10 @@ async function run(serviceKey, deployId, options = {}) {
     return { status: 'failed' };
   }
 
+  // Separar targets: webapp usa blue-green, demais usam fluxo padrão
+  const isWebappDeploy = targets.includes('webapp');
+  const regularTargets = targets.filter(t => t !== 'webapp');
+
   try {
     // ── STEP 1: Git Pull ─────────────────────────────────────────────────
     step(deployId, 'git-pull', 'running');
@@ -124,8 +193,8 @@ async function run(serviceKey, deployId, options = {}) {
     step(deployId, 'git-pull', 'done');
     log(deployId, `✓ Pull concluído. Commit: ${currentHash?.slice(0, 7)}`);
 
-    // ── STEP 3: Build ─────────────────────────────────────────────────────
-    for (const svc of targets) {
+    // ── STEP 3: Build (regular services only) ──────────────────────────────
+    for (const svc of regularTargets) {
       step(deployId, `build:${svc}`, 'running');
       log(deployId, `▶ docker compose build ${svc}${options.noCache ? ' --no-cache' : ''}${options.noDeps ? ' --no-deps' : ''}`);
       await docker.buildService(svc, (line, stream) => log(deployId, line, stream), { noCache: options.noCache, noDeps: options.noDeps });
@@ -133,8 +202,8 @@ async function run(serviceKey, deployId, options = {}) {
       log(deployId, `✓ Build de '${svc}' concluído`);
     }
 
-    // ── STEP 4: Down ──────────────────────────────────────────────────────
-    for (const svc of targets) {
+    // ── STEP 4: Down (regular services only) ─────────────────────────────
+    for (const svc of regularTargets) {
       step(deployId, `down:${svc}`, 'running');
       log(deployId, `▶ docker compose stop + rm ${svc}`);
       await docker.downService(svc, (line, stream) => log(deployId, line, stream));
@@ -153,8 +222,8 @@ async function run(serviceKey, deployId, options = {}) {
       migrationRan = true;
     }
 
-    // ── STEP 6: Up ────────────────────────────────────────────────────────
-    for (const svc of targets) {
+    // ── STEP 6: Up (regular services only) ───────────────────────────────
+    for (const svc of regularTargets) {
       step(deployId, `up:${svc}`, 'running');
       log(deployId, `▶ docker compose up -d ${svc}${options.noDeps ? ' --no-deps' : ''}`);
       await docker.upService(svc, (line, stream) => log(deployId, line, stream), { noDeps: options.noDeps });
@@ -162,8 +231,8 @@ async function run(serviceKey, deployId, options = {}) {
       log(deployId, `✓ '${svc}' subiu`);
     }
 
-    // ── STEP 7: Health Check ──────────────────────────────────────────────
-    for (const svc of targets) {
+    // ── STEP 7: Health Check (regular services only) ─────────────────────
+    for (const svc of regularTargets) {
       step(deployId, `health:${svc}`, 'running');
       log(deployId, `▶ Aguardando health check de '${svc}' (30s timeout)`);
       const health = await docker.waitForHealthy(svc, (line, stream) => log(deployId, line, stream));
@@ -181,6 +250,15 @@ async function run(serviceKey, deployId, options = {}) {
         log(deployId, `✗ '${svc}' está unhealthy`, 'stderr');
         deployStatus = 'warning';
       }
+    }
+
+    // ── STEP 8: Blue-Green Deploy (webapp only) ──────────────────────────
+    if (isWebappDeploy) {
+      step(deployId, 'blue-green', 'running');
+      log(deployId, '▶ Iniciando deploy blue-green do webapp...');
+      const bgResult = await runBlueGreenWebapp(deployId, options);
+      step(deployId, 'blue-green', 'done');
+      log(deployId, `✓ Blue-green: ${bgResult.stopped} → ${bgResult.active}`);
     }
 
   } catch (err) {
@@ -416,4 +494,4 @@ async function runGitSync(deployId) {
   return { status: syncStatus, summary: { duration, currentHash } };
 }
 
-module.exports = { run, rollback, runMigrationOnly, on, runGitSync };
+module.exports = { run, rollback, runMigrationOnly, runBlueGreenWebapp, on, runGitSync };
