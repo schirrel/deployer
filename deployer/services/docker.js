@@ -271,6 +271,7 @@ async function reloadNginx(onLine) {
 async function renameContainer(oldName, newName) {
   const result = await spawnCmd('docker', ['rename', oldName, newName]);
   if (result.code !== 0) {
+    console.log('Erro ao renomear container:', result.stderr);
     throw new Error(`docker rename falhou (exit ${result.code})`);
   }
   return result;
