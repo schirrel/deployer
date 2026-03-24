@@ -218,6 +218,56 @@ async function waitForHealthy(containerName, onLine, timeoutMs = 30000) {
   });
 }
 
+
+/**
+ * Lê o upstream ativo do arquivo active-upstream.conf.
+ * Retorna 'webapp' ou 'webapp-green'.
+ */
+function getActiveWebapp() {
+  const { repoPath } = getEnv();
+  const upstreamFile = path.join(repoPath, 'packages/infra/docker/nginx/active-upstream.conf');
+  try {
+    const content = fs.readFileSync(upstreamFile, 'utf8');
+    return content.includes('webapp-green') ? 'webapp-green' : 'webapp';
+  } catch {
+    return 'webapp';
+  }
+}
+
+/**
+ * Retorna o webapp inativo (oposto do ativo).
+ */
+function getInactiveWebapp() {
+  return getActiveWebapp() === 'webapp' ? 'webapp-green' : 'webapp';
+}
+
+/**
+ * Altera o arquivo active-upstream.conf para apontar ao serviço informado.
+ * @param {string} targetService — 'webapp' ou 'webapp-green'
+ * @param {Function} [onLine]
+ */
+function switchUpstream(targetService, onLine) {
+  const { repoPath } = getEnv();
+  const upstreamFile = path.join(repoPath, 'packages/infra/docker/nginx/active-upstream.conf');
+  const content = `set $active_webapp http://${targetService}:3000;\n`;
+  fs.writeFileSync(upstreamFile, content, 'utf8');
+  if (onLine) onLine(`Upstream switched to ${targetService}`, 'stdout');
+}
+
+/**
+ * Recarrega configuração do nginx sem downtime.
+ */
+async function reloadNginx(onLine) {
+  const result = await spawnCmd(
+    'docker', ['exec', 'zelo-prd-nginx', 'nginx', '-s', 'reload'],
+    {}, onLine
+  );
+  if (result.code !== 0) {
+    throw new Error(`nginx reload falhou (exit ${result.code})`);
+  }
+  return result;
+}
+
 module.exports = {
   spawnCmd,
   buildService,
@@ -226,4 +276,8 @@ module.exports = {
   getContainerName,
   getContainerStatus,
   waitForHealthy,
+  getActiveWebapp,
+  getInactiveWebapp,
+  switchUpstream,
+  reloadNginx,
 };
