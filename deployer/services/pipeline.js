@@ -141,7 +141,7 @@ async function runBlueGreenWebapp(deployId, options = {}) {
   step(deployId, `bg-down:${active}`, 'done');
   log(deployId, `✓ '${active}' parado. Deploy blue-green concluído!`);
 
-  
+  /* 
   log(deployId, '▶ Renomeando container...');
   step(deployId, 'bg-renaming', 'running');
   log(deployId, `▶ docker rename ${active} ${inactive}`);
@@ -151,7 +151,7 @@ async function runBlueGreenWebapp(deployId, options = {}) {
   log(deployId, `▶ Switching traffic: ${inactive} → ${inactive}`);
   step(deployId, 'bg-switch', 'running');
   docker.switchUpstream(active, onLine);
-  await docker.reloadNginx(onLine);
+  await docker.reloadNginx(onLine); */
   step(deployId, 'bg-switch', 'done');
   log(deployId, `✓ Tráfego redirecionado para '${inactive}'`);
 
