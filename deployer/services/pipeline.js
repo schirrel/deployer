@@ -20,7 +20,8 @@ const config = require('./config');
 
 const HISTORY_FILE = path.join(__dirname, '..', 'data', 'history.json');
 const LOGS_DIR     = path.join(__dirname, '..', 'data', 'logs');
-const HEALTH_TIMEOUT = config.timeout ? parseInt(config.timeout, 10) : 120000; 
+const env = config.getConfig();
+const HEALTH_TIMEOUT = env.timeout ? parseInt(env.timeout, 10) : 120000; 
 // Mapa global de emitters por deployId
 const emitters = new Map();
 
@@ -227,7 +228,7 @@ async function run(serviceKey, deployId, options = {}) {
 
     // ── STEP 5: Prisma migrate deploy (sempre — é idempotente) ────────────
     
-    let migrationEnabled = config.migration?.enabled === true;
+    let migrationEnabled = env.migration?.enabled === true;
     if (migrationEnabled) {
       step(deployId, 'prisma-migrate', 'running');
       log(deployId, '▶ docker compose run -T --rm prisma-migrate');

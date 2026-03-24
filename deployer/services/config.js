@@ -293,6 +293,10 @@ function getFullConfig() {
   };
 }
 
+function getConfig() {
+  return loadConfig();
+} 
+
 module.exports = {
   getServices,
   getServiceMap,
@@ -306,4 +310,5 @@ module.exports = {
   // Constantes para uso externo
   CONFIG_FILE,
   EXAMPLE_FILE,
+  getConfig
 };
