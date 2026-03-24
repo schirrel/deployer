@@ -12,6 +12,8 @@ const { spawn }  = require('child_process');
 const path       = require('path');
 const fs         = require('fs');
 
+const config = require('./config');
+
 // Garante que PATH inclua os diretórios comuns de binários do sistema.
 const SYSTEM_PATH = [
   '/usr/local/sbin',
@@ -218,38 +220,55 @@ async function waitForHealthy(containerName, onLine, timeoutMs = 30000) {
   });
 }
 
+function getUpstreamFilePath() {
+  const { repoPath } = getEnv();
+  const nginxConfig = config.getNginx();
+  if (!nginxConfig || !nginxConfig.upstreamFile) {
+    throw new Error('Configuração do nginx não encontrada ou inválida');
+  }
+  return path.join(repoPath, nginxConfig.upstreamFile);
+}
+
+function getBlueGreenConfig() {
+  const blueGreenConfig = config.getBlueGreenConfig();
+  if (!blueGreenConfig) {
+    throw new Error('Configuração blue-green não encontrada ou inválida');
+  }
+  return blueGreenConfig;
+}
 
 /**
  * Lê o upstream ativo do arquivo active-upstream.conf.
- * Retorna 'webapp' ou 'webapp-green'.
+ * Retorna containerName ou containerName-green.
  */
-function getActiveWebapp() {
-  const { repoPath } = getEnv();
-  const upstreamFile = path.join(repoPath, 'packages/infra/docker/nginx/active-upstream.conf');
+function getActiveBlueGreen() {
+  const upstreamFile = getUpstreamFilePath();
+  const blueGreenConfig = getBlueGreenConfig();
   try {
     const content = fs.readFileSync(upstreamFile, 'utf8');
-    return content.includes('webapp-green') ? 'webapp-green' : 'webapp';
+    return content.includes('green') ? blueGreenConfig.composeName+'-green' : blueGreenConfig.composeName;
   } catch {
-    return 'webapp';
+    return blueGreenConfig.composeName;
   }
 }
 
 /**
- * Retorna o webapp inativo (oposto do ativo).
+ * Retorna o containerName inativo (oposto do ativo).
  */
-function getInactiveWebapp() {
-  return getActiveWebapp() === 'webapp' ? 'webapp-green' : 'webapp';
+function getInactiveBlueGreen() {
+  const blueGreenConfig = getBlueGreenConfig();
+  return getActiveBlueGreen() === blueGreenConfig.composeName ? blueGreenConfig.composeName+'-green' : blueGreenConfig.composeName;
 }
 
 /**
  * Altera o arquivo active-upstream.conf para apontar ao serviço informado.
- * @param {string} targetService — 'webapp' ou 'webapp-green'
+ * @param {string} targetService — 'containerName' ou 'containerName-green'
  * @param {Function} [onLine]
  */
 function switchUpstream(targetService, onLine) {
-  const { repoPath } = getEnv();
-  const upstreamFile = path.join(repoPath, 'packages/infra/docker/nginx/active-upstream.conf');
-  const content = `set $active_webapp http://${targetService}:3000;\n`;
+  const upstreamFile = getUpstreamFilePath();
+  const blueGreenConfig = getBlueGreenConfig();
+  const content = `set $active_${blueGreenConfig.composeName} http://${targetService}:${blueGreenConfig.port};\n`;
   fs.writeFileSync(upstreamFile, content, 'utf8');
   if (onLine) onLine(`Upstream switched to ${targetService}`, 'stdout');
 }
@@ -259,7 +278,7 @@ function switchUpstream(targetService, onLine) {
  */
 async function reloadNginx(onLine) {
   const result = await spawnCmd(
-    'docker', ['exec', 'zelo-prd-nginx', 'nginx', '-s', 'reload'],
+    'docker', ['compose', 'exec', 'nginx', 'nginx', '-s', 'reload'],
     {}, onLine
   );
   if (result.code !== 0) {
@@ -285,8 +304,8 @@ module.exports = {
   getContainerName,
   getContainerStatus,
   waitForHealthy,
-  getActiveWebapp,
-  getInactiveWebapp,
+  getActiveBlueGreen,
+  getInactiveBlueGreen,
   switchUpstream,
   reloadNginx,
   renameContainer,

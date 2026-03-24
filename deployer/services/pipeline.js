@@ -79,15 +79,15 @@ function saveRecord(record) {
   writeHistory(history);
 }
 
-// ── Blue-Green Deploy (Webapp) ─────────────────────────────────────────────
+// ── Blue-Green Deploy ─────────────────────────────────────────────
 
 /**
- * Executa deploy blue-green do webapp: build inativo → up → health → switch → stop ativo.
+ * Executa deploy blue-green: build inativo → up → health → switch → stop ativo.
  * Garante zero-downtime para usuários.
  */
-async function runBlueGreenWebapp(deployId, options = {}) {
-  const active   = docker.getActiveWebapp();
-  const inactive = docker.getInactiveWebapp();
+async function runBlueGreen(deployId, options = {}) {
+  const active   = docker.getActiveBlueGreen();
+  const inactive = docker.getInactiveBlueGreen();
   const onLine   = (line, stream) => log(deployId, line, stream);
 
   log(deployId, `▶ [Blue-Green] Active: ${active} | Inactive: ${inactive}`);
@@ -139,22 +139,31 @@ async function runBlueGreenWebapp(deployId, options = {}) {
   log(deployId, `▶ Stopping old active: ${active}`);
   await docker.downService(active, onLine);
   step(deployId, `bg-down:${active}`, 'done');
-  log(deployId, `✓ '${active}' parado. Deploy blue-green concluído!`);
-
-  /* 
-  log(deployId, '▶ Renomeando container...');
-  step(deployId, 'bg-renaming', 'running');
-  log(deployId, `▶ docker rename ${active} ${inactive}`);
-  await docker.renameContainer(active, inactive);
-  step(deployId, 'bg-renaming', 'done');
-  log(deployId, `✓ Container renomeado: ${active} → ${active}`);
-  log(deployId, `▶ Switching traffic: ${inactive} → ${inactive}`);
+  log(deployId, `✓ '${active}' parado. Deploy blue-green concluído!`);    
+  log(deployId, `▶ Switching traffic: ${inactive} → ${active}`);
   step(deployId, 'bg-switch', 'running');
   docker.switchUpstream(active, onLine);
-  await docker.reloadNginx(onLine); */
+  await docker.reloadNginx(onLine); 
   step(deployId, 'bg-switch', 'done');
   log(deployId, `✓ Tráfego redirecionado para '${inactive}'`);
 
+
+  if (active.indexOf('green') !== -1) {
+    log(deployId, '▶ Renomeando container...');
+    step(deployId, 'bg-renaming', 'running');    
+    const blueGreenConfig = config.getBlueGreenConfig();
+    log(deployId, `▶ docker rename ${active} ${blueGreenConfig.composeName}`);
+    step(deployId, 'bg-renaming', 'done');
+    await docker.renameContainer(active, blueGreenConfig.composeName);
+    log(deployId, `✓ Container renomeado: ${active} → ${blueGreenConfig.composeName}`);
+    
+    log(deployId, `▶ Switching traffic: ${inactive} → ${active}`);
+    step(deployId, 'bg-switch', 'running');
+    docker.switchUpstream(blueGreenConfig.composeName, onLine);
+    await docker.reloadNginx(onLine); 
+    step(deployId, 'bg-switch', 'done');
+    log(deployId, `✓ Tráfego redirecionado para '${inactive}'`);
+  }
 
   return { blueGreen: true, active: inactive, stopped: active };
 }
@@ -177,6 +186,7 @@ async function run(serviceKey, deployId, options = {}) {
   let   previousHash  = null;
   let   currentHash   = null;
   let   migrationRan  = false;
+  const blueGreenTargets = config.getServices().filter(s => s.blueGreen).map(s => s.key);
 
   // Serviços a deployar
   const targets = serviceKey === 'all'
@@ -193,8 +203,8 @@ async function run(serviceKey, deployId, options = {}) {
   }
 
   // Separar targets: webapp usa blue-green, demais usam fluxo padrão
-  const isWebappDeploy = targets.includes('webapp');
-  const regularTargets = targets.filter(t => t !== 'webapp');
+  const blueGreenDeployTarget = targets.find(t => blueGreenTargets.includes(t));
+  const regularTargets = targets.filter(t => !blueGreenTargets.includes(t));
 
   try {
     // ── STEP 1: Git Pull ─────────────────────────────────────────────────
@@ -269,10 +279,12 @@ async function run(serviceKey, deployId, options = {}) {
     }
 
     // ── STEP 8: Blue-Green Deploy (webapp only) ──────────────────────────
-    if (isWebappDeploy) {
+    if (blueGreenDeployTarget.length > 0) {
+      const svc = blueGreenDeployTarget[0]; // atualmente so comporta um blue-green
+      log(deployId, `\n── Iniciando deploy blue-green para '${svc}' ──`);        
       step(deployId, 'blue-green', 'running');
-      log(deployId, '▶ Iniciando deploy blue-green do webapp...');
-      const bgResult = await runBlueGreenWebapp(deployId, options);
+      log(deployId, `▶ Iniciando deploy blue-green do '${svc}'...`);
+      const bgResult = await runBlueGreen(deployId, svc, options);
       step(deployId, 'blue-green', 'done');
       log(deployId, `✓ Blue-green: ${bgResult.stopped} → ${bgResult.active}`);
     }
@@ -510,4 +522,4 @@ async function runGitSync(deployId) {
   return { status: syncStatus, summary: { duration, currentHash } };
 }
 
-module.exports = { run, rollback, runMigrationOnly, runBlueGreenWebapp, on, runGitSync };
+module.exports = { run, rollback, runMigrationOnly, runBlueGreen, on, runGitSync };

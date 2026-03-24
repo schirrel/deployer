@@ -293,9 +293,20 @@ function getFullConfig() {
   };
 }
 
+function getNginx() {
+  const services = getServiceMap();
+  return services['nginx'] || null;
+}
+
 function getConfig() {
   return loadConfig();
 } 
+
+function getBlueGreenConfig() {
+  const config = loadConfig();
+  const services = config.services || [];
+  return services.find(s => s.blueGreen);
+}
 
 module.exports = {
   getServices,
@@ -310,5 +321,7 @@ module.exports = {
   // Constantes para uso externo
   CONFIG_FILE,
   EXAMPLE_FILE,
-  getConfig
+  getConfig,
+  getNginx,
+  getBlueGreenConfig
 };
