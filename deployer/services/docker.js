@@ -11,6 +11,7 @@
 const { spawn }  = require('child_process');
 const path       = require('path');
 const fs         = require('fs');
+const config     = require('./config');
 
 // Garante que PATH inclua os diretórios comuns de binários do sistema.
 const SYSTEM_PATH = [
@@ -220,17 +221,28 @@ async function waitForHealthy(containerName, onLine, timeoutMs = 30000) {
 
 
 /**
+ * Resolve o caminho absoluto do upstream file a partir da config.
+ */
+function resolveUpstreamFile() {
+  const { repoPath } = getEnv();
+  const relPath = config.getUpstreamFilePath();
+  if (!relPath) throw new Error('upstreamFile não configurado em services.json (defina em um serviço)');
+  return path.join(repoPath, relPath);
+}
+
+/**
  * Lê o upstream ativo do arquivo active-upstream.conf.
- * Retorna 'webapp' ou 'webapp-green'.
+ * Retorna o composeName ativo ou o composeName base do serviço blue-green.
  */
 function getActiveWebapp() {
-  const { repoPath } = getEnv();
-  const upstreamFile = path.join(repoPath, 'packages/infra/docker/nginx/active-upstream.conf');
+  const bgInfo = config.getBlueGreenServiceInfo();
+  const baseName = bgInfo ? bgInfo.composeName : 'webapp';
+  const greenName = `${baseName}-green`;
   try {
-    const content = fs.readFileSync(upstreamFile, 'utf8');
-    return content.includes('webapp-green') ? 'webapp-green' : 'webapp';
+    const content = fs.readFileSync(resolveUpstreamFile(), 'utf8');
+    return content.includes(greenName) ? greenName : baseName;
   } catch {
-    return 'webapp';
+    return baseName;
   }
 }
 
@@ -238,19 +250,22 @@ function getActiveWebapp() {
  * Retorna o webapp inativo (oposto do ativo).
  */
 function getInactiveWebapp() {
-  return getActiveWebapp() === 'webapp' ? 'webapp-green' : 'webapp';
+  const bgInfo = config.getBlueGreenServiceInfo();
+  const baseName = bgInfo ? bgInfo.composeName : 'webapp';
+  const greenName = `${baseName}-green`;
+  return getActiveWebapp() === baseName ? greenName : baseName;
 }
 
 /**
  * Altera o arquivo active-upstream.conf para apontar ao serviço informado.
- * @param {string} targetService — 'webapp' ou 'webapp-green'
+ * @param {string} targetService
  * @param {Function} [onLine]
  */
 function switchUpstream(targetService, onLine) {
-  const { repoPath } = getEnv();
-  const upstreamFile = path.join(repoPath, 'packages/infra/docker/nginx/active-upstream.conf');
-  const content = `set $active_webapp http://${targetService}:3000;\n`;
-  fs.writeFileSync(upstreamFile, content, 'utf8');
+  const bgInfo = config.getBlueGreenServiceInfo();
+  const port = bgInfo ? bgInfo.port : 80;
+  const content = `set $active_webapp http://${targetService}:${port};\n`;
+  fs.writeFileSync(resolveUpstreamFile(), content, 'utf8');
   if (onLine) onLine(`Upstream switched to ${targetService}`, 'stdout');
 }
 

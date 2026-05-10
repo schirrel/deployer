@@ -241,6 +241,37 @@ function getAllServicesMap() {
 }
 
 /**
+ * Retorna array de composeName dos serviços com blueGreen: true
+ */
+function getBlueGreenComposeNames() {
+  const config = loadConfig();
+  return config.services
+    .filter(svc => svc.blueGreen === true)
+    .map(svc => svc.composeName);
+}
+
+/**
+ * Retorna o caminho relativo do upstream file (de qualquer serviço que tenha upstreamFile definido).
+ * Retorna null se não configurado.
+ */
+function getUpstreamFilePath() {
+  const config = loadConfig();
+  const svc = config.services.find(s => s.upstreamFile);
+  return svc ? svc.upstreamFile : null;
+}
+
+/**
+ * Retorna { composeName, port } do primeiro serviço blue-green configurado.
+ * Retorna null se não houver serviço blue-green.
+ */
+function getBlueGreenServiceInfo() {
+  const config = loadConfig();
+  const svc = config.services.find(s => s.blueGreen === true);
+  if (!svc) return null;
+  return { composeName: svc.composeName, port: svc.port || 80 };
+}
+
+/**
  * Verifica se um serviço é deployável
  */
 function isDeployable(key) {
@@ -301,6 +332,9 @@ module.exports = {
   getServices,
   getServiceMap,
   getAllServicesMap,
+  getBlueGreenComposeNames,
+  getUpstreamFilePath,
+  getBlueGreenServiceInfo,
   isDeployable,
   getComposeName,
   getMigrationConfig,

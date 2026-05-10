@@ -192,9 +192,10 @@ async function run(serviceKey, deployId, options = {}) {
     return { status: 'failed' };
   }
 
-  // Separar targets: webapp usa blue-green, demais usam fluxo padrão
-  const isWebappDeploy = targets.includes('webapp');
-  const regularTargets = targets.filter(t => t !== 'webapp');
+  // Separar targets: serviços com blueGreen:true usam blue-green, demais usam fluxo padrão
+  const blueGreenNames = new Set(config.getBlueGreenComposeNames());
+  const isBlueGreenDeploy = targets.some(t => blueGreenNames.has(t));
+  const regularTargets = targets.filter(t => !blueGreenNames.has(t));
 
   try {
     // ── STEP 1: Git Pull ─────────────────────────────────────────────────
@@ -268,8 +269,8 @@ async function run(serviceKey, deployId, options = {}) {
       }
     }
 
-    // ── STEP 8: Blue-Green Deploy (webapp only) ──────────────────────────
-    if (isWebappDeploy) {
+    // ── STEP 8: Blue-Green Deploy (serviços com blueGreen: true) ─────────
+    if (isBlueGreenDeploy) {
       step(deployId, 'blue-green', 'running');
       log(deployId, '▶ Iniciando deploy blue-green do webapp...');
       const bgResult = await runBlueGreenWebapp(deployId, options);
